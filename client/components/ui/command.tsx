@@ -2,8 +2,8 @@
 
 import * as React from "react"
 import { Command as CommandPrimitive } from "cmdk"
-import { cn } from "cn"
 
+import { cn } from "@/lib/utils"
 import {
   Dialog,
   DialogContent,
@@ -15,7 +15,7 @@ import {
   InputGroup,
   InputGroupAddon,
 } from "@/components/ui/input-group"
-import { MagnifyingGlassIcon, CheckIcon } from "@phosphor-icons/react"
+import { SearchIcon, CheckIcon } from "lucide-react"
 
 function Command({
   className,
@@ -82,7 +82,7 @@ function CommandInput({
           {...props}
         />
         <InputGroupAddon>
-          <MagnifyingGlassIcon className="size-4 shrink-0 opacity-50" />
+          <SearchIcon className="size-4 shrink-0 opacity-50" />
         </InputGroupAddon>
       </InputGroup>
     </div>
