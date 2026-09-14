@@ -1,5 +1,46 @@
-backend/target/
-client/node_modules/
-client/.next/
-client/out/
+# Spring Boot, Maven, and Gradle
+**/target/
+**/build/
+**/.mvn/wrapper/maven-wrapper.jar
+*.class
 *.log
+
+# Spring Tool Suite, Eclipse, IntelliJ IDEA, and NetBeans
+.classpath
+.factorypath
+.project
+.settings/
+.springBeans
+.sts4-cache/
+.idea/
+*.iws
+*.iml
+*.ipr
+nbproject/private/
+nbbuild/
+nbdist/
+
+# VS Code
+.vscode/
+
+# Node.js dependencies and package-manager files
+**/node_modules/
+
+# Next.js
+**/.next/
+**/out/
+**/build/
+.vercel/
+
+# Frontend test, coverage, and TypeScript output
+**/coverage/
+*.tsbuildinfo
+next-env.d.ts
+
+# Environment files and local secrets
+.env*
+*.pem
+
+# Debug logs and local OS files
+npm-debug.log*
+.DS_Store
