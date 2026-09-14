@@ -1,0 +1,5 @@
+backend/target/
+client/node_modules/
+client/.next/
+client/out/
+*.log
