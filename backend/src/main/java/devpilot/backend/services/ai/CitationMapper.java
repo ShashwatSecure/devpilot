@@ -9,7 +9,10 @@ import tools.jackson.core.JacksonException;
 import tools.jackson.core.type.TypeReference;
 import tools.jackson.databind.json.JsonMapper;
 
+import devpilot.backend.dto.ChatMessageResponse;
 import devpilot.backend.dto.CitationDto;
+import devpilot.backend.entity.ChatMessage;
+import devpilot.backend.util.ConversionUtils;
 import lombok.RequiredArgsConstructor;
 
 /**
@@ -24,10 +27,10 @@ public class CitationMapper {
     public CitationDto fromDocument(Document document) {
         var meta = document.getMetadata();
         return new CitationDto(
-                stringVal(meta.get("filePath")),
-                intVal(meta.get("startLine")),
-                intVal(meta.get("endLine")),
-                stringVal(meta.get("language")));
+                ConversionUtils.stringVal(meta.get("filePath")),
+                ConversionUtils.intVal(meta.get("startLine")),
+                ConversionUtils.intVal(meta.get("endLine")),
+                ConversionUtils.stringVal(meta.get("language")));
     }
 
     public String toJson(List<CitationDto> citations) {
@@ -49,21 +52,13 @@ public class CitationMapper {
         }
     }
 
-    private static String stringVal(Object value) {
-        return value == null ? null : String.valueOf(value);
-    }
-
-    private static Integer intVal(Object value) {
-        if (value instanceof Number number) {
-            return number.intValue();
-        }
-        if (value == null) {
-            return null;
-        }
-        try {
-            return Integer.parseInt(String.valueOf(value));
-        } catch (NumberFormatException e) {
-            return null;
-        }
+    /** Maps a persisted chat message to its API response, decoding stored citation JSON. */
+    public ChatMessageResponse toResponse(ChatMessage message) {
+        return new ChatMessageResponse(
+                message.getId(),
+                message.getRole(),
+                message.getContent(),
+                fromJson(message.getCitations()),
+                message.getCreatedAt());
     }
 }

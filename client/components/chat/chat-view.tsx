@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, Bot } from "lucide-react";
 
 import { ChatComposer } from "@/components/chat/chat-composer";
 import { ChatMessages } from "@/components/chat/chat-messages";
@@ -105,10 +105,20 @@ export function ChatView({ repoId }: { repoId: string }) {
           : "Waiting for indexing to finish"
       }
       actions={
-        <Button variant="outline" size="sm" render={<Link href="/dashboard" />}>
-          <ArrowLeft data-icon="inline-start" />
-          Repos
-        </Button>
+        <>
+          <Button
+            variant="outline"
+            size="sm"
+            render={<Link href={`/chat/${repoId}/agent`} />}
+          >
+            <Bot data-icon="inline-start" />
+            Issue Agent
+          </Button>
+          <Button variant="outline" size="sm" render={<Link href="/dashboard" />}>
+            <ArrowLeft data-icon="inline-start" />
+            Repos
+          </Button>
+        </>
       }
     >
       <div className="flex min-h-0 flex-1 flex-col md:flex-row">

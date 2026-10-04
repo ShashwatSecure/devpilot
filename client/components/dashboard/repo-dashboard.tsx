@@ -15,9 +15,7 @@ import {
 } from "@/components/ui/empty";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useRefreshRepos, useRepos } from "@/hooks/use-repos";
-import type { IndexStatus } from "@/lib/api";
-
-type FilterStatus = "ALL" | IndexStatus;
+import type { FilterStatus } from "@/lib/api";
 
 export function RepoDashboard() {
   const reposQuery = useRepos();

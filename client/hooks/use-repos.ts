@@ -8,6 +8,7 @@ import { toast } from "@/components/ui/toast";
 
 
 
+/** Poll interval (ms) while a repository's index status is INDEXING. */
 const INDEXING_POLL_MS = 2000;
 
 function hasIndexingRepos(repos: Repository[] | undefined) {
@@ -56,7 +57,7 @@ export function useIndexStatus(repoId: string, enabled = false) {
     queryFn: () => api.indexStatus(repoId),
     enabled: Boolean(repoId) && enabled,
     refetchInterval: (query) =>
-      query.state.data?.indexStatus === "INDEXING" ? 1500 : false,
+      query.state.data?.indexStatus === "INDEXING" ? INDEXING_POLL_MS : false,
   });
 }
 

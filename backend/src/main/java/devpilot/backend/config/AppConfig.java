@@ -26,4 +26,15 @@ public class AppConfig {
         executor.initialize();
         return executor;
     }
+
+    @Bean(name = "fileIndexingExecutor")
+    Executor fileIndexingExecutor() {
+        ThreadPoolTaskExecutor executor = new ThreadPoolTaskExecutor();
+        executor.setCorePoolSize(2);
+        executor.setMaxPoolSize(2);
+        executor.setQueueCapacity(50);
+        executor.setThreadNamePrefix("index-file-");
+        executor.initialize();
+        return executor;
+    }
 }

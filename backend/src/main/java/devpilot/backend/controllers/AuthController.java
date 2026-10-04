@@ -13,8 +13,6 @@ import devpilot.backend.security.AppUserPrincipal;
 import devpilot.backend.security.CurrentUser;
 import lombok.RequiredArgsConstructor;
 
-
-
 @RestController
 @RequestMapping("/api/auth")
 @RequiredArgsConstructor
@@ -25,7 +23,6 @@ public class AuthController {
     public Map<String, String> loginUrl() {
         return Map.of("url", "/oauth2/authorization/github");
     }
-
 
     @GetMapping("/me")
     public ResponseEntity<UserResponse> me() {
@@ -38,5 +35,4 @@ public class AuthController {
                 user.getDisplayName(),
                 user.getAvatarUrl()));
     }
-    
 }

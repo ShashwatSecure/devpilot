@@ -5,13 +5,15 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.Executor;
 
-import org.springframework.stereotype.Service;
 import org.springframework.ai.document.Document;
 import org.springframework.ai.vectorstore.VectorStore;
-import org.springframework.ai.vectorstore.filter.FilterExpressionBuilder;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.annotation.Async;
+import org.springframework.stereotype.Service;
 
 import devpilot.backend.entity.IndexStatus;
 import devpilot.backend.entity.Repository;
@@ -40,6 +42,8 @@ public class IndexingService {
     private final CodeChunker codeChunker;
     private final GitHubRateLimiter rateLimiter;
     private final VectorStore vectorStore;
+    @Qualifier("fileIndexingExecutor")
+    private final Executor fileIndexingExecutor;
 
     @Value("${app.indexing.max-file-bytes:102400}")
     private long maxFileBytes;
@@ -62,7 +66,7 @@ public class IndexingService {
     }
 
     @Async("indexingExecutor")
-     public void indexAsync(UUID repoId, UUID userId) {
+    public void indexAsync(UUID repoId, UUID userId) {
         try {
             doIndex(repoId, userId);
         } catch (Exception ex) {
@@ -72,7 +76,7 @@ public class IndexingService {
     }
 
 
-      private void doIndex(UUID repoId, UUID userId) {
+    private void doIndex(UUID repoId, UUID userId) {
         Repository repo = repositoryRepository.findById(repoId)
                 .orElseThrow(() -> new NotFoundException("Repository not found"));
         String token = userService.decryptAccessToken(userService.requiredById(userId));
@@ -89,26 +93,27 @@ public class IndexingService {
         int processed = 0;
         int totalChunks = 0;
 
-        for (String path : filePaths) {
-            try {
-                String content = gitHubApiClient.getFileContent(
-                        token, repo.getOwner(), repo.getName(), path);
-                List<Document> chunks = codeChunker.chunkFile(repoId.toString(), path, content);
+        for (int start = 0; start < filePaths.size(); start += 2) {
+            List<CompletableFuture<List<Document>>> futures = filePaths.subList(
+                    start, Math.min(start + 2, filePaths.size())).stream()
+                    .map(path -> CompletableFuture.supplyAsync(() -> indexFile(
+                            token, repo, repoId, path), fileIndexingExecutor))
+                    .toList();
+
+            for (CompletableFuture<List<Document>> future : futures) {
+                List<Document> chunks = future.join();
                 batch.addAll(chunks);
                 totalChunks += chunks.size();
+                processed++;
                 if (batch.size() >= VECTOR_BATCH_SIZE) {
                     vectorStore.add(batch);
                     batch.clear();
                 }
-            } catch (Exception ex) {
-                log.warn("Skipping file {} in {}: {}", path, repo.getFullName(), ex.getMessage());
             }
 
-            processed++;
             if (processed % PROGRESS_EVERY_N_FILES == 0 || processed == filePaths.size()) {
                 updateProgress(repoId, filePaths.size(), processed, totalChunks, IndexStatus.INDEXING, null);
             }
-            rateLimiter.pause();
         }
 
         if (!batch.isEmpty()) {
@@ -118,8 +123,21 @@ public class IndexingService {
         markReady(repoId, filePaths.size(), processed, totalChunks, repo.getFullName());
     }
 
+    private List<Document> indexFile(String token, Repository repo, UUID repoId, String path) {
+        try {
+            String content = gitHubApiClient.getFileContent(
+                    token, repo.getOwner(), repo.getName(), path);
+            List<Document> chunks = codeChunker.chunkFile(repoId.toString(), path, content);
+            rateLimiter.pause();
+            return chunks;
+        } catch (Exception ex) {
+            log.warn("Skipping file {} in {}: {}", path, repo.getFullName(), ex.getMessage());
+            return List.of();
+        }
+    }
 
-       @SuppressWarnings("unchecked")
+
+    @SuppressWarnings("unchecked")
     private List<String> listIndexableFiles(Map<String, Object> tree) {
         if (tree == null || tree.get("tree") == null) {
             return List.of();
@@ -137,16 +155,15 @@ public class IndexingService {
                 .toList();
     }
 
-     private void deleteExistingVectors(String repoId) {
+    private void deleteExistingVectors(String repoId) {
         try {
-            var filter = new FilterExpressionBuilder().eq(RagSettings.METADATA_REPO_ID, repoId).build();
-            vectorStore.delete(filter);
+            vectorStore.delete(RagSettings.repoIdFilter(repoId));
         } catch (Exception ex) {
             log.warn("Could not delete existing vectors for repo {}: {}", repoId, ex.getMessage());
         }
     };
 
-      @Transactional
+    @Transactional
     protected void updateProgress(
             UUID repoId,
             int total,
@@ -165,7 +182,7 @@ public class IndexingService {
         });
     }
 
-      @Transactional
+    @Transactional
     protected void markReady(UUID repoId, int totalFiles, int processedFiles, int totalChunks, String fullName) {
         repositoryRepository.findById(repoId).ifPresent(repo -> {
             repo.setIndexStatus(IndexStatus.READY);
@@ -180,7 +197,7 @@ public class IndexingService {
         log.info("Indexed {} files ({} chunks) for {}", processedFiles, totalChunks, fullName);
     }
 
-     @Transactional
+    @Transactional
     protected void markFailed(UUID repoId, String message) {
         repositoryRepository.findById(repoId).ifPresent(repo -> {
             repo.setIndexStatus(IndexStatus.FAILED);
