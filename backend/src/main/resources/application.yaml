@@ -2,14 +2,15 @@ spring:
   application:
     name: backend
   datasource:
-    url: ${db-url}
-    username: ${db-username}
-    password: ${db-password}
+    url: ${DB_URL}
+    username: ${DB_USERNAME}
+    password: ${DB_PASSWORD}
     driver-class-name: org.postgresql.Driver
   jpa:
-    show-sql: true
+    show-sql: false
     hibernate:
-      ddl-auto: validate
+      # Temporarily skip JPA schema validation while the agent tables are unused.
+      ddl-auto: none
     properties:
       hibernate:
         "[format_sql]": true
@@ -17,13 +18,30 @@ spring:
   flyway:
     enabled: true
     locations: classpath:db/migration
+    baseline-on-migrate: true
+    baseline-version: 3
     validate-on-migrate: true
   ai:
+    model:
+      embedding:
+        text: google-genai
     google:
       genai:
         api-key: ${GOOGLE_GENAI_API_KEY}
         chat:
-          model: gemini-2.0-flash
+          model: ${GOOGLE_GENAI_CHAT_MODEL:gemini-3.8-flash}
+        embedding:
+          api-key: ${GOOGLE_GENAI_API_KEY}
+          text:
+            dimensions: 3072
+            model: gemini-embedding-001
+    vectorstore:
+      pgvector:
+        initialize-schema: true
+        dimensions: 3072
+        # HNSW does not support the existing 3072-dimensional embedding column.
+        index-type: NONE
+        distance-type: COSINE_DISTANCE
   security:
     oauth2:
       client:
@@ -33,9 +51,9 @@ spring:
             client-secret: ${GITHUB_CLIENT_SECRET}
 
 app:
-  frontend-url: ${FRONTEND_URL}
+  frontend-url: http://localhost:3000
   cors:
-    allowed-origins: ${CORS_ALLOWED_ORIGINS}
+    allowed-origins: http://localhost:3000
   token-encryptor-password: ${TOKEN_ENCRYPTOR_PASSWORD}
   token-encryptor-salt: ${TOKEN_ENCRYPTOR_SALT}
   github:
