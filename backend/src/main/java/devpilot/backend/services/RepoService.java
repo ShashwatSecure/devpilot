@@ -16,6 +16,7 @@ import devpilot.backend.entity.User;
 import devpilot.backend.exceptions.NotFoundException;
 import devpilot.backend.repository.RepositoryRepository;
 import devpilot.backend.services.github.GithubApiClient;
+import devpilot.backend.util.ConversionUtils;
 
 import lombok.RequiredArgsConstructor;
 
@@ -34,8 +35,8 @@ public class RepoService {
 
         List<Repository> saved = new ArrayList<>();
 
-          for (Map<String, Object> remote : remoteRepos) {
-            Long githubRepoId = toLong(remote.get("id"));
+        for (Map<String, Object> remote : remoteRepos) {
+            Long githubRepoId = ConversionUtils.toLong(remote.get("id"));
             Repository repo = repositoryRepository
                     .findByUserIdAndGithubRepoId(userId, githubRepoId)
                     .orElseGet(Repository::new);
@@ -49,12 +50,10 @@ public class RepoService {
             repo.setName(parts.length > 1 ? parts[1] : String.valueOf(remote.get("name")));
             repo.setFullName(fullName);
             repo.setPrivate(Boolean.TRUE.equals(remote.get("private")));
-            repo.setDefaultBranch(remote.get("default_branch") != null
-                    ? String.valueOf(remote.get("default_branch"))
-                    : "main");
-            repo.setLanguage(remote.get("language") != null ? String.valueOf(remote.get("language")) : null);
-            repo.setHtmlUrl(remote.get("html_url") != null ? String.valueOf(remote.get("html_url")) : null);
-            repo.setDescription(remote.get("description") != null ? String.valueOf(remote.get("description")) : null);
+            repo.setDefaultBranch(getStringOrDefault(remote, "default_branch", "main"));
+            repo.setLanguage(getStringOrDefault(remote, "language", null));
+            repo.setHtmlUrl(getStringOrDefault(remote, "html_url", null));
+            repo.setDescription(getStringOrDefault(remote, "description", null));
             repo.setUpdatedAt(Instant.now());
             if (repo.getOwner() == null || repo.getOwner().isBlank()) {
                 Object ownerObj = remote.get("owner");
@@ -64,28 +63,26 @@ public class RepoService {
             }
             saved.add(repositoryRepository.save(repo));
         }
-    
-         return saved.stream()
+
+        return saved.stream()
                 .sorted((a, b) -> a.getFullName().compareToIgnoreCase(b.getFullName()))
                 .map(this::toResponse)
                 .toList();
     }
 
-    
     @Transactional(readOnly = true)
     public List<RepositoryResponse> listStored(UUID userId) {
         return repositoryRepository.findByUserIdOrderByFullNameAsc(userId).stream()
                 .map(this::toResponse)
                 .toList();
     }
-    
+
     @Transactional(readOnly = true)
     public Repository requireOwned(UUID repoId, UUID userId) {
         return repositoryRepository.findByIdAndUserId(repoId, userId)
                 .orElseThrow(() -> new NotFoundException("Repository not found"));
     }
 
-    
     @Transactional(readOnly = true)
     public IndexStatusResponse status(UUID repoId, UUID userId) {
         Repository repo = requireOwned(repoId, userId);
@@ -99,7 +96,7 @@ public class RepoService {
                 repo.getErrorMessage());
     }
 
-     public RepositoryResponse toResponse(Repository repo) {
+    public RepositoryResponse toResponse(Repository repo) {
         return new RepositoryResponse(
                 repo.getId(),
                 repo.getGithubRepoId(),
@@ -119,10 +116,8 @@ public class RepoService {
                 repo.getErrorMessage());
     }
 
-    private static Long toLong(Object value) {
-        if (value instanceof Number number) {
-            return number.longValue();
-        }
-        return Long.parseLong(String.valueOf(value));
+    private static String getStringOrDefault(Map<String, Object> map, String key, String defaultValue) {
+        Object value = map.get(key);
+        return value != null ? String.valueOf(value) : defaultValue;
     }
 }

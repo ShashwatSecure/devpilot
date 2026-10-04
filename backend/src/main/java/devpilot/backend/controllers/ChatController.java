@@ -34,27 +34,23 @@ public class ChatController {
     @PostMapping("/sessions")
     public ResponseEntity<ChatSessionResponse> createSession(
             @Valid @RequestBody CreateChatSessionRequest request) {
-        UUID userId = currentUser.require().getId();
-        return ResponseEntity.ok(chatService.createSession(userId, request));
+        return ResponseEntity.ok(chatService.createSession(currentUser.id(), request));
     }
 
     @GetMapping("/sessions")
     public List<ChatSessionResponse> listSessions(@RequestParam UUID repositoryId) {
-        UUID userId = currentUser.require().getId();
-        return chatService.listSessions(userId, repositoryId);
+        return chatService.listSessions(currentUser.id(), repositoryId);
     }
 
     @GetMapping("/sessions/{id}")
     public List<ChatMessageResponse> getMessages(@PathVariable UUID id) {
-        UUID userId = currentUser.require().getId();
-        return chatService.getMessages(userId, id);
+        return chatService.getMessages(currentUser.id(), id);
     }
 
     @PostMapping(value = "/sessions/{id}/messages", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
     public SseEmitter sendMessage(
             @PathVariable UUID id,
             @Valid @RequestBody ChatMessageRequest request) {
-        UUID userId = currentUser.require().getId();
-        return chatService.streamReply(userId, id, request.content());
+        return chatService.streamReply(currentUser.id(), id, request.content());
     }
 }

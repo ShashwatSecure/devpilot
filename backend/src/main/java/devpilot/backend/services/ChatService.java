@@ -78,7 +78,7 @@ public class ChatService {
     public List<ChatMessageResponse> getMessages(UUID userId, UUID sessionId) {
         ChatSession session = requireSession(userId, sessionId);
         return chatMessageRepository.findBySessionIdOrderByCreatedAtAsc(session.getId()).stream()
-                .map(this::toMessageResponse)
+                .map(citationMapper::toResponse)
                 .toList();
     }
 
@@ -113,7 +113,7 @@ public class ChatService {
         // 5. Stream OpenAI response to the client (SSE)
         return chatStreamHandler.stream(
                 session.getId(),
-                toMessageResponse(userMessage),
+                citationMapper.toResponse(userMessage),
                 retrievedContext.citations(),
                 systemPrompt,
                 userPrompt);
@@ -125,14 +125,5 @@ public class ChatService {
                 session.getRepositoryId(),
                 session.getTitle(),
                 session.getCreatedAt());
-    }
-
-    private ChatMessageResponse toMessageResponse(ChatMessage message) {
-        return new ChatMessageResponse(
-                message.getId(),
-                message.getRole(),
-                message.getContent(),
-                citationMapper.fromJson(message.getCitations()),
-                message.getCreatedAt());
     }
 }

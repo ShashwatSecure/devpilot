@@ -9,7 +9,6 @@ import { DevPilotIcon } from "@/components/icons/devpilot-icon";
 import { ModeToggle } from "@/components/ui/mode-toggle";
 import { useCurrentUser, useLogout } from "@/hooks/use-auth";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -223,18 +222,3 @@ export function BrandMark({ className }: { className?: string }) {
   );
 }
 
-export function GhostButtonLink({
-  href,
-  children,
-  className,
-}: {
-  href: string;
-  children: React.ReactNode;
-  className?: string;
-}) {
-  return (
-    <Button variant="ghost" size="sm" className={className} render={<Link href={href} />}>
-      {children}
-    </Button>
-  );
-}

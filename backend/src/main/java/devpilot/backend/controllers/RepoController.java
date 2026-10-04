@@ -32,8 +32,8 @@ public class RepoController {
 
     @GetMapping
     public List<RepositoryResponse> list(
-            @RequestParam(name = "refresh", defaultValue = "true") boolean refresh) {
-        UUID userId = currentUser.require().getId();
+            @RequestParam(defaultValue = "true") boolean refresh) {
+        UUID userId = currentUser.id();
         if (refresh) {
             return repoService.syncAndListRepos(userId);
         }
@@ -42,13 +42,12 @@ public class RepoController {
 
     @GetMapping("/{id}")
     public RepositoryResponse get(@PathVariable UUID id) {
-        UUID userId = currentUser.require().getId();
-        return repoService.toResponse(repoService.requireOwned(id, userId));
+        return repoService.toResponse(repoService.requireOwned(id, currentUser.id()));
     }
 
     @PostMapping("/{id}/index")
     public ResponseEntity<RepositoryResponse> index(@PathVariable UUID id) {
-        UUID userId = currentUser.require().getId();
+        UUID userId = currentUser.id();
         Repository repo = indexingService.startIndexing(id, userId);
         indexingService.indexAsync(id, userId);
         return ResponseEntity.status(HttpStatus.ACCEPTED).body(repoService.toResponse(repo));
@@ -56,8 +55,7 @@ public class RepoController {
 
     @GetMapping("/{id}/status")
     public IndexStatusResponse status(@PathVariable UUID id) {
-        UUID userId = currentUser.require().getId();
-        return repoService.status(id, userId);
+        return repoService.status(id, currentUser.id());
     }
 
 }

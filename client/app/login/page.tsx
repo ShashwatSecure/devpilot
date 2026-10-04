@@ -1,5 +1,4 @@
 "use client";
-import React from 'react';
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useEffect } from "react";
@@ -31,7 +30,7 @@ function LoginLoading(){
 }
 
 const LoginContent = () => {
-     const params = useSearchParams();
+  const params = useSearchParams();
   const router = useRouter();
   const error = params.get("error");
   const next = params.get("next") || "/dashboard";

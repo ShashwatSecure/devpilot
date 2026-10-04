@@ -92,20 +92,11 @@ public class ChatStreamHandler {
 
             emitter.send(SseEmitter.event()
                     .name("assistant_message")
-                    .data(toMessageResponse(assistant)));
+                    .data(citationMapper.toResponse(assistant)));
             emitter.send(SseEmitter.event().name("done").data("[DONE]"));
             emitter.complete();
         } catch (Exception ex) {
             emitter.completeWithError(ex);
         }
-    }
-
-    private ChatMessageResponse toMessageResponse(ChatMessage message) {
-        return new ChatMessageResponse(
-                message.getId(),
-                message.getRole(),
-                message.getContent(),
-                citationMapper.fromJson(message.getCitations()),
-                message.getCreatedAt());
     }
 }

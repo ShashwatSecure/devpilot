@@ -8,9 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
 import { SidebarTrigger } from "@/components/ui/sidebar";
 import { cn } from "@/lib/utils";
-import type { IndexStatus } from "@/lib/api";
-
-type FilterStatus = "ALL" | IndexStatus;
+import type { FilterStatus } from "@/lib/api";
 
 type DashboardHeaderProps = {
   search: string;
