@@ -1,4 +1,5 @@
 export type IndexStatus = "PENDING" | "INDEXING" | "READY" | "FAILED";
+export type FilterStatus = "ALL" | IndexStatus;
 
 export type User = {
   id: string;
@@ -59,6 +60,43 @@ export type ChatMessage = {
   createdAt: string;
 };
 
+export type GithubIssue = {
+  number: number;
+  title: string;
+  body: string;
+  state: string;
+  htmlUrl: string | null;
+  authorLogin: string | null;
+  commentsCount: number;
+  createdAt: string | null;
+};
+
+export type AgentRunStatus = "PENDING" | "RUNNING" | "COMPLETED" | "FAILED";
+
+export type AgentRun = {
+  id: string;
+  repositoryId: string;
+  issueNumber: number;
+  issueTitle: string;
+  issueUrl: string | null;
+  status: AgentRunStatus;
+  issueType: string | null;
+  summary: string | null;
+  rootCause: string | null;
+  plan: string[];
+  proposedDiff: string | null;
+  prDescription: string | null;
+  testSuggestions: string | null;
+  reviewFeedback: string | null;
+  confidence: string | null;
+  iterations: number;
+  githubCommentPosted: boolean;
+  githubCommentUrl: string | null;
+  errorMessage: string | null;
+  createdAt: string;
+  updatedAt: string;
+};
+
 
 export class ApiError extends Error {
   status: number;
@@ -77,6 +115,25 @@ export function getGithubLoginUrl() {
   return `${getApiBaseUrl()}/oauth2/authorization/github`;
 }
 
+function getCookie(name: string): string | undefined {
+  if (typeof document === "undefined") return undefined;
+
+  const cookie = document.cookie
+    .split("; ")
+    .find((value) => value.startsWith(`${name}=`));
+  return cookie ? decodeURIComponent(cookie.substring(name.length + 1)) : undefined;
+}
+
+export async function ensureCsrfToken(): Promise<string | undefined> {
+  const existingToken = getCookie("XSRF-TOKEN");
+  if (existingToken) return existingToken;
+
+  await fetch(`${getApiBaseUrl()}/api/auth/me`, {
+    credentials: "include",
+  });
+  return getCookie("XSRF-TOKEN");
+}
+
 async function parseError(res: Response): Promise<string> {
   try {
     const data = await res.json();
@@ -90,11 +147,17 @@ export async function apiFetch<T>(
   path: string,
   init?: RequestInit,
 ): Promise<T> {
+  const method = (init?.method ?? "GET").toUpperCase();
+  const csrfToken = ["GET", "HEAD", "OPTIONS"].includes(method)
+    ? undefined
+    : await ensureCsrfToken();
+
   const res = await fetch(`${getApiBaseUrl()}${path}`, {
     ...init,
     credentials: "include",
     headers: {
       "Content-Type": "application/json",
+      ...(csrfToken ? { "X-XSRF-TOKEN": csrfToken } : {}),
       ...(init?.headers ?? {}),
     },
   });
@@ -135,4 +198,21 @@ export const api = {
     ),
   getMessages: (sessionId: string) =>
     apiFetch<ChatMessage[]>(`/api/chat/sessions/${sessionId}`),
+
+  listAgentIssues: (repoId: string) =>
+    apiFetch<GithubIssue[]>(`/api/repos/${repoId}/agent/issues`),
+  createAgentRun: (repoId: string, issueNumber: number) =>
+    apiFetch<AgentRun>(`/api/repos/${repoId}/agent/runs`, {
+      method: "POST",
+      body: JSON.stringify({ issueNumber }),
+    }),
+  listAgentRuns: (repoId: string) =>
+    apiFetch<AgentRun[]>(`/api/repos/${repoId}/agent/runs`),
+  getAgentRun: (repoId: string, runId: string) =>
+    apiFetch<AgentRun>(`/api/repos/${repoId}/agent/runs/${runId}`),
+  postAgentComment: (repoId: string, runId: string, commentBody?: string) =>
+    apiFetch<AgentRun>(`/api/repos/${repoId}/agent/runs/${runId}/post-comment`, {
+      method: "POST",
+      body: JSON.stringify({ commentBody: commentBody ?? null }),
+    }),
 };

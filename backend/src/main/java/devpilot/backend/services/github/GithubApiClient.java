@@ -26,7 +26,7 @@ public class GithubApiClient {
 
     private final RestClient.Builder restClientBuilder;
 
-     public List<Map<String, Object>> listUserRepos(String accessToken) {
+    public List<Map<String, Object>> listUserRepos(String accessToken) {
         List<Map<String, Object>> all = new ArrayList<>();
         int page = 1;
         while (page <= 10) {
@@ -54,7 +54,7 @@ public class GithubApiClient {
         return all;
     }
 
-      public Map<String, Object> getRepoTree(String accessToken, String owner, String repo, String branch) {
+    public Map<String, Object> getRepoTree(String accessToken, String owner, String repo, String branch) {
         return client(accessToken)
                 .get()
                 .uri("/repos/{owner}/{repo}/git/trees/{branch}?recursive=1", owner, repo, branch)
@@ -62,7 +62,7 @@ public class GithubApiClient {
                 .body(MAP);
     }
 
-       public String getFileContent(String accessToken, String owner, String repo, String path) {
+    public String getFileContent(String accessToken, String owner, String repo, String path) {
         Map<String, Object> body = client(accessToken)
                 .get()
                 .uri("/repos/{owner}/{repo}/contents/{path}", owner, repo, path)
@@ -83,6 +83,42 @@ public class GithubApiClient {
         return String.valueOf(content);
     }
     
+    /** Open issues only (GitHub's issues API also returns pull requests, which we filter out). */
+    public List<Map<String, Object>> listOpenIssues(String accessToken, String owner, String repo) {
+        List<Map<String, Object>> issues = client(accessToken)
+                .get()
+                .uri(uriBuilder -> uriBuilder
+                        .path("/repos/{owner}/{repo}/issues")
+                        .queryParam("state", "open")
+                        .queryParam("sort", "updated")
+                        .queryParam("per_page", 30)
+                        .build(owner, repo))
+                .retrieve()
+                .body(LIST_MAP);
+        if (issues == null) {
+            return List.of();
+        }
+        return issues.stream().filter(issue -> issue.get("pull_request") == null).toList();
+    }
+
+    public Map<String, Object> getIssue(String accessToken, String owner, String repo, int issueNumber) {
+        return client(accessToken)
+                .get()
+                .uri("/repos/{owner}/{repo}/issues/{number}", owner, repo, issueNumber)
+                .retrieve()
+                .body(MAP);
+    }
+
+    public Map<String, Object> postIssueComment(
+            String accessToken, String owner, String repo, int issueNumber, String body) {
+        return client(accessToken)
+                .post()
+                .uri("/repos/{owner}/{repo}/issues/{number}/comments", owner, repo, issueNumber)
+                .body(Map.of("body", body))
+                .retrieve()
+                .body(MAP);
+    }
+
     private RestClient client(String accessToken){
           return restClientBuilder
                 .baseUrl(API_BASE)

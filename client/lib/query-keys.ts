@@ -16,4 +16,13 @@ export const queryKeys = {
     messages: (sessionId: string) =>
       [...queryKeys.chat.all, "messages", sessionId] as const,
   },
+  agent: {
+    all: ["agent"] as const,
+    issues: (repositoryId: string) =>
+      [...queryKeys.agent.all, "issues", repositoryId] as const,
+    runs: (repositoryId: string) =>
+      [...queryKeys.agent.all, "runs", repositoryId] as const,
+    run: (repositoryId: string, runId: string) =>
+      [...queryKeys.agent.all, "run", repositoryId, runId] as const,
+  },
 };
