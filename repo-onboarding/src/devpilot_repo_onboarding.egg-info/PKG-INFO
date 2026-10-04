@@ -1,0 +1,102 @@
+Metadata-Version: 2.4
+Name: devpilot-repo-onboarding
+Version: 0.1.0
+Summary: Analyze any repository you have access to and generate a grounded, in-depth product + technical onboarding guide with a suggested learning path.
+License: MIT
+Requires-Python: >=3.10
+Description-Content-Type: text/markdown
+Requires-Dist: langgraph>=0.2.62
+Requires-Dist: langchain-core>=0.3.29
+Requires-Dist: langchain-groq>=0.2.3
+Requires-Dist: langchain-openai>=0.2.14
+Requires-Dist: langchain-google-genai>=2.0.7
+Requires-Dist: pydantic>=2.10.4
+Requires-Dist: pydantic-settings>=2.7.1
+Requires-Dist: httpx>=0.28.1
+Requires-Dist: pathspec>=0.12.1
+Requires-Dist: python-dotenv>=1.2.2
+Provides-Extra: dev
+Requires-Dist: pytest>=8.0.0; extra == "dev"
+
+# repo-onboarding — `devpilot-onboard`
+
+A standalone, pip-installable CLI that analyzes **any repository you have access to** —
+not just DevPilot itself — and generates a grounded, in-depth **product + technical
+onboarding guide** with a suggested learning path. Deliberately isolated from the rest of
+this monorepo: no dependency on the Java backend, Postgres, or the issue-resolution
+agent-service. Install it once and point it at any repo on your machine.
+
+See [../09-REPO-ONBOARDING-TOOL.md](../09-REPO-ONBOARDING-TOOL.md) for the full design
+write-up.
+
+## Install
+
+```bash
+cd repo-onboarding
+python -m venv .venv
+source .venv/bin/activate     # .venv\Scripts\activate on Windows
+pip install -e .
+cp .env.example .env          # fill in at least one of GROQ_API_KEY / XAI_API_KEY / GOOGLE_API_KEY
+```
+
+## Use
+
+```bash
+# Analyze a repo already on disk
+devpilot-onboard analyze /path/to/any/repo
+
+# Analyze a repo you have access to via git (uses your own git credentials — this tool
+# never sees or stores a token)
+devpilot-onboard analyze git@github.com:someorg/somerepo.git
+
+# Write the report to a file, plus the raw structured result as JSON
+devpilot-onboard analyze . -o onboarding.md --json onboarding.json
+
+# Force a provider, or turn off best-effort web glossary lookups
+devpilot-onboard analyze . --provider groq --no-web-lookup
+```
+
+## What it does
+
+1. **Scan** the repo on disk (`.gitignore`-aware): language breakdown, build/package
+   manifests, declared dependencies (npm, pip, Maven, Gradle, Go modules, Cargo,
+   pyproject), README/architecture-doc excerpts, and recent git history — all
+   deterministic, no LLM involved.
+2. **Detect stack**: match declared dependencies against a known-frameworks list; anything
+   unrecognized becomes a candidate for glossary lookup.
+3. **Web-enrich** (optional, on by default): looks up unfamiliar tech terms via Wikipedia's
+   public REST summary API only — no scraping, no arbitrary URL fetching, capped call
+   count, short timeout, silent degrade if offline/disabled.
+4. **Analyze** with an LLM (LangGraph, same Groq / xAI Grok / Google Gemini provider
+   abstraction as `agent-service/`) from two angles: product (problem, users, features,
+   value proposition) and technical (architecture, key components, data flow, patterns).
+5. **Generate a learning path**: ordered steps from first orientation to a confident first
+   change, each pointing at real files — a deterministic grounding step drops any file the
+   model hallucinated that isn't actually in the repo.
+6. **Render** a Markdown report (and optionally raw JSON).
+
+## Security notes
+
+- No GitHub/auth token handling of any kind — cloning a git URL relies entirely on your
+  own already-configured git credentials (SSH key / credential manager).
+- Git remote URLs are credential-redacted before ever being included in a prompt or report.
+- Read-only: never writes into the analyzed repository.
+- Only bounded README/doc excerpts and structured facts are sent to the LLM — not full
+  source files — to reduce the chance of accidentally forwarding a secret from an
+  unrelated file.
+
+## Limitations
+
+- Root-level `.gitignore` only (nested `.gitignore` files aren't merged in).
+- Dependency extraction is regex/JSON best-effort per manifest format; unusual or custom
+  build systems may be under-detected.
+- Output quality depends on the target repo's own documentation — thin docs are called out
+  explicitly (see "Degradation notes" in the report) rather than papered over with
+  generic invented text.
+
+## Tests
+
+```bash
+pip install -e ".[dev]"
+python -m pytest tests/ -v
+```

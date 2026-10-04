@@ -1,0 +1,32 @@
+[project]
+name = "devpilot-repo-onboarding"
+version = "0.1.0"
+description = "Analyze any repository you have access to and generate a grounded, in-depth product + technical onboarding guide with a suggested learning path."
+readme = "README.md"
+requires-python = ">=3.10"
+license = { text = "MIT" }
+dependencies = [
+    "langgraph>=0.2.62",
+    "langchain-core>=0.3.29",
+    "langchain-groq>=0.2.3",
+    "langchain-openai>=0.2.14",
+    "langchain-google-genai>=2.0.7",
+    "pydantic>=2.10.4",
+    "pydantic-settings>=2.7.1",
+    "httpx>=0.28.1",
+    "pathspec>=0.12.1",
+    "python-dotenv>=1.2.2",
+]
+
+[project.optional-dependencies]
+dev = ["pytest>=8.0.0"]
+
+[project.scripts]
+devpilot-onboard = "repo_onboarding.cli:main"
+
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+where = ["src"]

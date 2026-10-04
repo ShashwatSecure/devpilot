@@ -1,0 +1,2 @@
+[console_scripts]
+devpilot-onboard = repo_onboarding.cli:main
