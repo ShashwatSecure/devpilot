@@ -1,7 +1,7 @@
-"""Pydantic request/response contract between the Java backend and this agent-service.
+"""Pydantic request/response contract for the agent-service API.
 
-The wire format is camelCase (matching the Java records on the other side); Python code
-uses idiomatic snake_case attributes via Pydantic v2 alias generation.
+The wire format is camelCase; Python code uses idiomatic snake_case attributes via
+Pydantic v2 alias generation.
 """
 from __future__ import annotations
 
@@ -29,8 +29,6 @@ class AgentRunRequest(CamelModel):
 
 
 class AgentResult(CamelModel):
-    """Mirrors the Java `AgentResultPayload` record — keep fields in lockstep."""
-
     issue_type: str
     summary: str
     root_cause: str

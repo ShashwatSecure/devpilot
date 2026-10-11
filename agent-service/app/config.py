@@ -14,7 +14,6 @@ class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8", extra="ignore")
 
     # --- Google Gemini ---------------------------------------------------------
-    # Keep these names aligned with backend/src/main/resources/application.yaml.
     google_genai_api_key: str = ""
     google_genai_chat_model: str = "gemini-3.8-flash"
 
@@ -28,10 +27,18 @@ class Settings(BaseSettings):
     host: str = "0.0.0.0"
     port: int = 8000
 
-    # --- Inbound auth: shared secret the Java backend sends when calling THIS service.
-    # Optional for local dev (a warning is logged at startup if unset); strongly
-    # recommended whenever this service is reachable from anywhere but a private network.
-    agent_service_api_key: str = ""
+    # --- Database ------------------------------------------------------------------
+    database_url: str = "postgresql+asyncpg://devpilot:devpilot@localhost:5432/devpilot"
+
+    # --- Local embeddings (Qwen3-Embedding-0.6B, run via sentence-transformers) -----
+    # Native output dimension is 1024; the `embeddings` table's vector column must match.
+    embedding_model: str = "Qwen/Qwen3-Embedding-0.6B"
+    embedding_dimension: int = 1024
+
+    # --- Guest sessions --------------------------------------------------------------
+    session_cookie_name: str = "devpilot_session"
+    session_secret: str = "dev-insecure-secret-change-me"
+    session_ttl_hours: int = 24
 
 
 @lru_cache

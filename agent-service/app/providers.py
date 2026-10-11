@@ -11,7 +11,7 @@ class ProviderNotConfiguredError(RuntimeError):
 
 
 def get_chat_model(settings: Settings):
-    """Build a LangChain chat model using the Java backend's Gemini settings."""
+    """Build a LangChain chat model using the configured Gemini settings."""
     if not settings.google_genai_api_key:
         raise ProviderNotConfiguredError("GOOGLE_GENAI_API_KEY is not configured.")
 

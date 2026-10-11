@@ -44,6 +44,7 @@ next-env.d.ts
 # Debug logs and local OS files
 npm-debug.log*
 .DS_Store
+*.sh
 
 # Python (agent-service)
 **/__pycache__/

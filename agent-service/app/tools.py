@@ -1,7 +1,7 @@
 """Tools the LangGraph agent can call. Deliberately minimal: the only external side effect
-available to the model is a read-only, repository-scoped vector search against code already
-indexed by the Java backend. There is no file-write, shell, or arbitrary-HTTP tool, so even a
-successful prompt-injection attempt inside an issue body has nothing destructive to reach for.
+available to the model is a read-only, repository-scoped vector search against already-indexed
+code. There is no file-write, shell, or arbitrary-HTTP tool, so even a successful prompt-injection
+attempt inside an issue body has nothing destructive to reach for.
 """
 from __future__ import annotations
 

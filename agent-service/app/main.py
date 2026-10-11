@@ -6,15 +6,15 @@ from __future__ import annotations
 import json
 import logging
 from collections.abc import AsyncGenerator
-from contextlib import asynccontextmanager
 
-from fastapi import Depends, FastAPI, Header, HTTPException, status
+from fastapi import FastAPI
 from fastapi.responses import StreamingResponse
 
 from app.agent.graph import build_graph
 from app.config import Settings, get_settings
 from app.providers import ProviderNotConfiguredError, get_chat_model
 from app.schemas import AgentResult, AgentRunRequest
+from app.sessions import SessionMiddleware
 from app.tools import CodebaseSearchTool
 
 logging.basicConfig(level=logging.INFO)
@@ -31,27 +31,8 @@ _NODE_MESSAGES = {
 }
 
 
-def verify_caller(x_agent_service_key: str | None = Header(default=None)) -> None:
-    settings = get_settings()
-    if not settings.agent_service_api_key:
-        return  # no key configured -> local-dev mode, already warned about at startup
-    if x_agent_service_key != settings.agent_service_api_key:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid agent-service key")
-
-
-@asynccontextmanager
-async def lifespan(_: FastAPI) -> AsyncGenerator[None, None]:
-    settings = get_settings()
-    if not settings.agent_service_api_key:
-        logger.warning(
-            "AGENT_SERVICE_API_KEY is not set — this service will accept requests from any "
-            "caller that can reach it on the network. Fine for local docker-compose, not for "
-            "anything internet-reachable."
-        )
-    yield
-
-
-app = FastAPI(title="DevPilot Agent Service", version="0.1.0", lifespan=lifespan)
+app = FastAPI(title="DevPilot Agent Service", version="0.1.0")
+app.add_middleware(SessionMiddleware)
 
 
 @app.get("/health")
@@ -122,6 +103,6 @@ async def _run_graph_stream(request: AgentRunRequest) -> AsyncGenerator[str, Non
     yield _sse("result", result.model_dump(by_alias=True))
 
 
-@app.post("/agent/issue-resolution/run", dependencies=[Depends(verify_caller)])
+@app.post("/agent/issue-resolution/run")
 async def run_issue_resolution(request: AgentRunRequest) -> StreamingResponse:
     return StreamingResponse(_run_graph_stream(request), media_type="text/event-stream")

@@ -5,9 +5,9 @@ services:
     container_name: devpilot-postgres
     restart: unless-stopped
     environment:
-      POSTGRES_DB: ${db-name}
-      POSTGRES_USER: ${db-username}
-      POSTGRES_PASSWORD: ${db-password}
+      POSTGRES_DB: devpilot
+      POSTGRES_USER: devpilot
+      POSTGRES_PASSWORD: devpilot
     ports:
       - "5432:5432"
     volumes:
@@ -19,5 +19,39 @@ services:
       timeout: 5s
       retries: 5
 
+  agent-service:
+    build: ./agent-service
+    container_name: devpilot-agent-service
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    env_file:
+      - ./agent-service/.env
+    environment:
+      DATABASE_URL: postgresql+asyncpg://devpilot:devpilot@postgres:5432/devpilot
+    volumes:
+      - devpilot_hf_cache:/root/.cache/huggingface
+    ports:
+      - "8000:8000"
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  client:
+    build:
+      context: ./client
+      args:
+        NEXT_PUBLIC_API_BASE_URL: ${NEXT_PUBLIC_API_BASE_URL:-http://localhost:8000}
+    container_name: devpilot-client
+    restart: unless-stopped
+    depends_on:
+      - agent-service
+    ports:
+      - "3000:3000"
+
 volumes:
   devpilot_pg_data:
+  devpilot_hf_cache:
